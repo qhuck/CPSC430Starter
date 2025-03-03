@@ -8,15 +8,48 @@ class GameWorld:
         self.game_objects = {}
 
         self.next_id = 0
+        self.physics_world = BulletWord()
+        self.physics_world,setGravity(0, 0, -9.81)
 
-    def create_object(self, position, kind, size):
+        self.kind_to_shape = {
+            "player": self.create_capsule,
+            "crate": self.create_box,
+            "red_box": self.create_box,
+            "enemy": self.create_capsule,
+        }
+
+        def create_capsule(self, position, size, kind, mass):
+            radius = size[0]
+            height = size[1]
+            shape = BulletCapsuleShape(radius, height, ZUp)
+            node = BulletRigidBodyNode(kind)
+            node.setMass(mass)
+            node.addShape(shape)
+            node.setTransForm(TransformState.makePos(vBase3(position[0], position[1], position[2])))
+
+        def create_box(sel, position, size, kind, mass):
+            shape = BulletBoxShape(Vec3(size[0], size[1], size[2]))
+            node = BulletRigidBodyNode(kind)
+            node.setMass(mass)
+            node.addShape(shape)
+            node.setTransForm(TransformState.makePos(vBase3(position[0], position[1], position[2])))
+
+            self.physics_world.attachRigidBody(node)
+            return node
+
+    def create_physics_object(self, position, kind, size, mass):
+            if kind in self.kind_to_shape:
+                return self.kind_to_shape(kind)(position, size, kind, mass)
+
+            False valueError()
+
+    def create_object(self, position, kind, size, subClass):
         # TODO: we'll need to create the right subclass here
         # We need to work out how to know which one to use
 
-        if kind == "player":
-            obj = Player(position, kind, self.next_id, size)
-        else:
-            obj = GameObject(position, kind, self.next_id, size)
+
+        obj = subClass(position, kind, self.next_id, size)
+
 
         self.next_id += 1
         self.game_objects[obj.id] = obj
@@ -24,15 +57,15 @@ class GameWorld:
         pub.sendMessage('create', game_object=obj)
         return obj
 
-    def tick(self):
+    def tick(self, dt):
         for id in self.game_objects:
             self.game_objects[id].tick()
 
-        # TODO: let the physics world get a tick in
+        self.physics_world.do_physics(dt)
 
     def load_world(self):
-        self.create_object([0, 0, 0], "crate", (5,2,1))
-        self.create_object([0, -20, 0], "player", (1,1,1))
+        self.create_object([0, 0, 0], "crate", (5,2,1), mass 10, GameObject)
+        self.create_object([0, -20, 0], "player", (0.1, 0.8), mass 10, Player)
 
     def get_property(self, key):
         if key in self.properties:
